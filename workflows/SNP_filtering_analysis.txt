@@ -1,0 +1,859 @@
+# Manta SNP filtering workflow 2021
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#   ACROSS SPECIES FILTERING   #
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+# output of STACKS pipeline on both birostris and alfredi individuals together
+# Downstream required for analysis considering both species
+
+# PE
+# 733592 loci, 
+# 489112 raw SNPs
+# 257 individuals
+
+# On qlogin -mem 8G
+
+# Rename vcf:
+
+mv populations.snps.vcf across_sp.vcf
+
+#~~ Get depth stats
+
+module load igmm/apps/vcftools/0.1.13
+
+vcftools --vcf across_sp.vcf --depth --out across_sp
+vcftools --vcf across_sp.vcf --geno-depth --out across_sp
+vcftools --vcf across_sp.vcf --site-mean-depth --out across_sp
+
+Inspect output in R 2.0_snp_sumstats.R
+
+#~~ Initial filter SNPs called in less than 40% of individuals, recode <6 geno depth
+
+vcftools --gzvcf across_sp.vcf \
+--max-missing 0.4 --minDP 6 --recode --recode-INFO-all --out across_sp_geno4_dp6
+
+#~~ Remove individuals that did not sequence well
+
+vcftools --vcf across_sp_geno4_dp6.recode.vcf --missing-indv --out across_sp_geno4_dp6
+
+# inspect output in R 2.0_snp_sumstats.R - some individuals are practically completely missing
+
+# Filter inds with < 45% missing
+
+awk '$5 > 0.45' across_sp_geno4_dp6.imiss | cut -f1 > across_sp_geno4_dp6_lowDP.indv
+
+vcftools --vcf across_sp_geno4_dp6.recode.vcf --remove across_sp_geno4_dp6_lowDP.indv \
+--recode --recode-INFO-all --out across_sp_geno4_dp6_ind
+
+# Kept 199 inds
+
+# rerun depth stats and inspect in R 2.0_snp_sumstats.R
+
+vcftools --vcf across_sp_geno4_dp6_ind.recode.vcf --site-mean-depth --out across_sp_geno4_dp6_ind
+
+# Filter for SNPs called in a high % of individuals and with good depth
+# 5% and 95% quantile for mean locus depth (ldepth) 25 / 376
+
+# no maf at this stage but could filter for singletons
+
+vcftools --vcf across_sp_geno4_dp6_ind.recode.vcf --max-missing 0.60 \
+--min-meanDP 25 --max-meanDP 376 --recode --recode-INFO-all --out across_sp_geno4_dp6_ind_geno_depth
+
+# After filtering, kept 81166 out of a possible 95370 Sites
+
+#~~ Convert to PLINK
+
+vcftools --vcf across_sp_geno4_dp6_ind_geno_depth.recode.vcf --plink --out across_sp_geno4_dp6_ind_geno_depth
+
+awk 'BEGIN { OFS = "\t" } { $1 = "Locus_" $1; print }' across_sp_geno4_dp6_ind_geno_depth.map > test
+mv test across_sp_geno4_dp6_ind_geno_depth.map
+
+module load roslin/plink/1.90p
+
+#~~~~~~~~~~~~~~~~#
+#   ERROR RATE   #
+#~~~~~~~~~~~~~~~~#
+
+#~~ Error rate calculation using dup individuals
+
+# List of duplicate individuals prepared in R script 2.1_prep_dup_files.R
+
+plink --file across_sp_geno4_dp6_ind_geno_depth --genome --keep ../../../file_lists/duplicates.txt \
+--out error_rate_dups --allow-extra-chr --debug
+
+# Inspect output in R script 2.2_error_rate.R
+
+#~~ Remove dups from plink file
+
+plink --file across_sp_geno4_dp6_ind_geno_depth \
+--keep ../../../file_lists/highest_dups.txt \
+--remove ../../../file_lists/texas_hybrid \
+--out across_sp_geno4_dp6_ind_geno_depth_no_dups --allow-extra-chr --debug --make-bed
+
+# Remove intermediate files
+
+rm across_sp_geno4_dp6_ind_geno_depth.*
+rm across_sp_geno4_dp6_ind.*
+rm across_sp_geno4_dp6.*
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#   SPECIES SPECIFIC POLYMORPHIC DATASETS   #
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+#~~ Get species specific polymorphic datasets
+
+awk '{print $1,$1}' ../../../file_lists/pop_map_alfredi_full_dataset.txt > ../../../file_lists/alfredi_plink
+awk '{print $1,$1}' ../../../file_lists/pop_map_birostris_full_dataset.txt > ../../../file_lists/birostris_plink
+
+plink --bfile across_sp_geno4_dp6_ind_geno_depth_no_dups \
+--keep ../../../file_lists/alfredi_plink \
+--maf 0.01 --hwe 0.001 \
+--make-bed --out alfredi_geno4_dp6_ind_geno_depth_no_dups_maf \
+--allow-extra-chr --debug
+
+# 5339 variants and 94 people pass filters and QC.
+
+plink --bfile across_sp_geno4_dp6_ind_geno_depth_no_dups \
+--keep ../../../file_lists/birostris_plink \
+--maf 0.01 --hwe 0.001 \
+--make-bed --out birostris_geno4_dp6_ind_geno_depth_no_dups_maf \
+--allow-extra-chr --debug
+
+# 23484 variants and 87 people pass filters and QC.
+
+#~~~~~~~~~~~~~#
+#   LINKAGE   #
+#~~~~~~~~~~~~~#
+
+#~~ Linkage
+
+plink --bfile alfredi_geno4_dp6_ind_geno_depth_no_dups_maf --indep 50 5 2 \
+--nonfounders --out alfredi_geno4_dp6_ind_geno_depth_no_dups_maf --allow-extra-chr --debug
+
+plink --bfile birostris_geno4_dp6_ind_geno_depth_no_dups_maf --indep 50 5 2 \
+--nonfounders --out birostris_geno4_dp6_ind_geno_depth_no_dups_maf --allow-extra-chr --debug
+
+
+#~~~~~~~~~~~~~~~~~#
+#   RELATEDNESS   #
+#~~~~~~~~~~~~~~~~~#
+
+#~~ Relatedness
+
+plink --bfile alfredi_geno4_dp6_ind_geno_depth_no_dups_maf \
+--geno 0.1 --maf 0.3 \
+--extract alfredi_geno4_dp6_ind_geno_depth_no_dups_maf.prune.in \
+--genome \
+--out relate/alfredi_relatedness \
+--recode vcf-iid \
+--allow-extra-chr --debug
+
+plink --bfile birostris_geno4_dp6_ind_geno_depth_no_dups_maf \
+--geno 0.1 --maf 0.3 --hwe 0.001 \
+--extract birostris_geno4_dp6_ind_geno_depth_no_dups_maf.prune.in \
+--genome \
+--out relate/birostris_relatedness \
+--recode vcf-iid \
+--allow-extra-chr --debug
+
+# Run NGSrelate
+
+/exports/cmvm/eddie/eb/groups/ogden_grp/software/ngsRelate/ngsRelate \
+-h relate/alfredi_relatedness.vcf \
+-T GT \
+-O relate/alfredi_relatedness.res \
+-c 1
+
+/exports/cmvm/eddie/eb/groups/ogden_grp/software/ngsRelate/ngsRelate \
+-h relate/birostris_relatedness.vcf \
+-T GT \
+-O relate/birostris_relatedness.res \
+-c 1
+
+# Go to R script on local to analyse downstream data -- KING versus R1 2.3_relatedness
+# and determine related pairings
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#     CREATE SOME FILES    #
+#~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+#~~ Create plink raw files
+#~~ Remove related individuals
+#~~ Filter for LD
+#~~ Filter for genotyping rate and minor allele count
+
+plink --bfile alfredi_geno4_dp6_ind_geno_depth_no_dups_maf \
+--extract alfredi_geno4_dp6_ind_geno_depth_no_dups_maf.prune.in \
+--mac 3 --geno 0.1 \
+--remove ../../../file_lists/alfredi_related --recodeA --make-bed \
+--allow-extra-chr --debug --out alfredi_geno4_dp6_ind_geno_depth_no_dups_maf_unrelated_ld
+
+# 1553 variants and 91 people pass filters and QC.
+
+# cat ../../../file_lists/birostris_related ../../../file_lists/texas_hybrid > ../../../file_lists/birostris_related_hybrid
+
+plink --bfile birostris_geno4_dp6_ind_geno_depth_no_dups_maf \
+--extract birostris_geno4_dp6_ind_geno_depth_no_dups_maf.prune.in \
+--mac 3 --geno 0.1 \
+--remove ../../../file_lists/birostris_related --recodeAD --make-bed \
+--allow-extra-chr --debug --out birostris_geno4_dp6_ind_geno_depth_no_dups_maf_unrelated_ld
+
+# 6278 variants and 82 people pass filters and QC.
+
+# Make structure files / BA3 / Treemix files
+
+# Go to local machine 4.0_make_files.R to create files and reupload to eddie
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#   POPULATION STRUCTURE   #
+#~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+#~~ PCA
+
+# Run 3.0_PCA_DAPC.R on local
+
+
+#~~ ADMIXTURE
+
+# Create ped map files for admixture
+
+#~~ Remove related individuals
+#~~ Filter for LD
+#~~ Filter for genotyping rate and minor allele count
+
+plink --bfile birostris_geno4_dp6_ind_geno_depth_no_dups_maf \
+--mac 3 --geno 0.1 \
+--extract birostris_geno4_dp6_ind_geno_depth_no_dups_maf.prune.in \
+--remove ../../../file_lists/birostris_related \
+--recode \
+--allow-extra-chr --debug --out admixture/birostris_admixture
+
+# 6278 variants and 82 people pass filters and QC.
+
+# edit chr info in map file
+
+awk '{$1="0";print $0}' admixture/birostris_admixture.map > admixture/birostris_admixture.map.tmp
+awk -F":" '$1=$1' OFS="\t" admixture/birostris_admixture.map.tmp > admixture/birostris_admixture.map.tmp2
+awk '{$2""; print $0}' admixture/birostris_admixture.map.tmp2 > admixture/birostris_admixture.map
+rm admixture/birostris_admixture.map.tmp*
+
+# make bed file using updated map files
+
+plink --file admixture/birostris_admixture \
+--out admixture/birostris_admixture \
+--make-bed --allow-extra-chr \
+--debug --nonfounders
+
+# alfredi
+
+plink --bfile alfredi_geno4_dp6_ind_geno_depth_no_dups_maf \
+--mac 3 --geno 0.1 \
+--extract alfredi_geno4_dp6_ind_geno_depth_no_dups_maf.prune.in \
+--remove ../../../file_lists/alfredi_related \
+--recode \
+--allow-extra-chr --debug --out admixture/alfredi_admixture
+
+# 1553 variants and 91 people pass filters and QC.
+
+# edit chr info in map file
+
+awk '{$1="0";print $0}' admixture/alfredi_admixture.map > admixture/alfredi_admixture.map.tmp
+awk -F":" '$1=$1' OFS="\t" admixture/alfredi_admixture.map.tmp > admixture/alfredi_admixture.map.tmp2
+awk '{$2""; print $0}' admixture/alfredi_admixture.map.tmp2 > admixture/alfredi_admixture.map
+rm admixture/alfredi_admixture.map.tmp*
+
+# make bed file using updated map files
+
+plink --file admixture/alfredi_admixture \
+--out admixture/alfredi_admixture \
+--make-bed --allow-extra-chr \
+--debug --nonfounders
+
+# Run admixture, editing job script for each species
+
+4.2_admixture.sh
+
+# outputs into base dir:
+
+mv alfredi_admixture* data/out/stacks_PE/admixture
+mv birostris_admixture* data/out/stacks_PE/admixture
+
+# get cross validation errors
+
+grep "CV" birostris*out | awk '{print $3,$4}' | sed -e 's/(//;s/)//;s/://;s/K=//'  > birostris_cv_error
+grep "CV" alfredi*out | awk '{print $3,$4}' | sed -e 's/(//;s/)//;s/://;s/K=//'  > alfredi_cv_error
+
+# visualisation and analysis on local machine 5.1_admixture_out.R
+
+
+
+#~~ STRUCTURE
+
+# recode plink files to ped map
+
+plink --bfile alfredi_geno4_dp6_ind_geno_depth_no_dups_maf_unrelated_ld --recode \
+--allow-extra-chr --debug --out alfredi_geno4_dp6_ind_geno_depth_no_dups_maf_unrelated_ld
+
+plink --bfile birostris_geno4_dp6_ind_geno_depth_no_dups_maf_unrelated_ld --recode \
+--allow-extra-chr --debug --out birostris_geno4_dp6_ind_geno_depth_no_dups_maf_unrelated_ld
+
+#~~ STRUCTURE
+
+# Take care that number of loci is correct in the parallel structure command otherwise breaks
+
+# ID
+# pop column
+# pop data column
+# locdata column (same as pops)
+# genotypes
+
+# Create run files for parallel structure
+
+4.0_structure_runfiles.sh
+
+# Run parallel structure for each species, making sure to edit scripts/run_structure.R
+
+# No locprior:
+
+# infile arg job script (birostris OR alfredi)/ 
+# locprior=0 and outpath nolocprior run_structure.R script
+
+# With locprior info: 
+
+# infile arg job script (birostris OR alfredi)/ 
+# locprior=1 and outpath locprior run_structure.R script
+
+4.1_run_structure.R
+
+nolocprior
+
+birostris: TO DO
+
+alfredi: TO DO
+
+locprior
+
+birostris: 2-10 hrs / >5 Gb
+
+alfredi: running
+
+
+# visualisation and analysis on local machine 5.0_structure_out.R
+
+# Get clumpp out on local using 5.0_structure_out.R
+
+# run clump to summarise repeats (from Kara)
+# on qlogin for each species and structure run
+
+for i in {2..8};
+do
+cp /exports/cmvm/eddie/eb/groups/ogden_grp/emily/software/CLUMPP_Linux64.1.1.2/CLUMPP \
+/exports/cmvm/eddie/eb/groups/ogden_grp/emily/manta_pop_gen_2020/data/out/stacks_PE/structure/birostris/locprior/pop_K${i}/.
+done
+
+cd birostris/locprior
+
+for i in {2..8};
+do
+cd pop_K${i}
+./CLUMPP
+cp pop_K${i}-combined-merged.txt ../.
+rm CLUMPP
+cd ..
+done
+
+# Go back to local 5.0_structure_out.R
+
+etc...
+
+
+
+#~~~~~~~~~#
+#   Fst   #
+#~~~~~~~~~#
+
+On local: 
+
+5.0_IBD.R
+5.1_over_sea_distance.R
+5.2_FST_WC.R
+5.3_FST_hudson.R
+
+# Calculating FST between populations / isolation by distance / Hs by distance
+
+
+#~~~~~~~~~~~~~~~~~~~~#
+#   HETEROZYGOSITY   #
+#~~~~~~~~~~~~~~~~~~~~#
+
+#~~ Create raw file for heterozygosity analysis
+
+# Using across species dataset for comparison
+
+cat ../../../file_lists/birostris_related ../../../file_lists/alfredi_related > ../../../file_lists/all_related
+
+plink --bfile across_sp_geno4_dp6_ind_geno_depth_no_dups \
+--mac 3 --geno 0.1 \
+--remove ../../../file_lists/all_related \
+--out across_sp_geno4_dp6_ind_geno_depth_no_dups_mac_geno \
+--allow-extra-chr --debug --recodeAD
+
+# 15312 variants and 185 people pass filters and QC.
+
+# Generate figures on local het.R
+
+
+#~~ Create vcf for nucleotide diversity calculations
+
+plink --bfile alfredi_geno4_dp6_ind_geno_depth_no_dups_maf \
+--extract alfredi_geno4_dp6_ind_geno_depth_no_dups_maf.prune.in \
+--remove ../../../file_lists/alfredi_related --recode vcf --mac 3 --geno 0.1 \
+--allow-extra-chr --debug --out alfredi_nuc_div
+
+plink --bfile birostris_geno4_dp6_ind_geno_depth_no_dups_maf \
+--extract birostris_geno4_dp6_ind_geno_depth_no_dups_maf.prune.in \
+--remove ../../../file_lists/birostris_related --recode vcf --mac 3 --geno 0.1 \
+--allow-extra-chr --debug --out birostris_nuc_div
+
+
+
+# calculate nucleotide diversity in sliding windows
+
+# prepare files for splitting vcf in 4.0_make_files.R function
+
+for i in Australia_Pacific Chagos Fiji Hawaii Maldives Seychelles
+do
+	vcftools --vcf alfredi_nuc_div.vcf \
+	--keep ../../../file_lists/alfredi_IDs_${i}.txt \
+	--window-pi 10000 \
+	--out pi/alfredi_${i}_nuc_div_10kb
+done
+
+
+vcftools --vcf birostris_nuc_div.vcf --window-pi 10000 --out birostris_nuc_div_10kb
+
+
+#~~~~~~~~~#
+#   MAF   #
+#~~~~~~~~~#
+
+#~~ across species
+
+plink --bfile across_sp_geno4_dp6_ind_geno_depth_no_dups \
+--mac 3 --geno 0.1 \
+--remove ../../../file_lists/all_related \
+--freq --nonfounders \
+--out across_sp_geno4_dp6_ind_geno_depth_no_dups_mac_geno \
+--allow-extra-chr --debug
+
+# across_sp_geno4_dp6_ind_geno_depth_no_dups_mac_geno.frq
+
+#~~ alfredi
+
+plink --bfile alfredi_geno4_dp6_ind_geno_depth_no_dups_maf \
+--mac 3 --geno 0.1 \
+--extract alfredi_geno4_dp6_ind_geno_depth_no_dups_maf.prune.in \
+--remove ../../../file_lists/alfredi_related \
+--freq --nonfounders \
+--allow-extra-chr --debug --out alfredi_maf
+
+# alfredi_maf.frq
+
+#~~ birostris
+
+plink --bfile birostris_geno4_dp6_ind_geno_depth_no_dups_maf \
+--mac 3 --geno 0.1 \
+--extract birostris_geno4_dp6_ind_geno_depth_no_dups_maf.prune.in \
+--remove ../../../file_lists/birostris_related \
+--freq --nonfounders \
+--allow-extra-chr --debug --out birostris_maf
+
+# birostris_admixture.frq
+
+#~~~~~~~~~~~~~~~~~~~~#
+#   BAYESASS3-SNPs   #
+#~~~~~~~~~~~~~~~~~~~~#
+
+#~~ Prepare files for BayesAss3-SNPs
+
+plink --bfile alfredi_geno4_dp6_ind_geno_depth_no_dups_maf \
+--extract alfredi_geno4_dp6_ind_geno_depth_no_dups_maf.prune.in \
+--remove ../../../file_lists/alfredi_related --recode --mac 3 --geno 0.1 \
+--allow-extra-chr --debug --out bayesass/alfredi_bayesass3
+
+# 1553 variants and 91 people pass filters and QC.
+
+plink --bfile birostris_geno4_dp6_ind_geno_depth_no_dups_maf \
+--extract birostris_geno4_dp6_ind_geno_depth_no_dups_maf.prune.in \
+--remove ../../../file_lists/birostris_related --recode --mac 3 --geno 0.1 \
+--allow-extra-chr --debug --out bayesass/birostris_bayesass3
+
+# 6278 variants and 82 people pass filters and QC.
+
+# edit ped files using 4.0_make_files.R
+# run ped files through pgdspider to get immanc input for bayesass3
+
+scp data/plink/across_sp/*inp ehumble@eddie.ecdf.ed.ac.uk:/exports/cmvm/eddie/eb/groups/ogden_grp/emily/manta_pop_gen_2020/data/out/stacks_PE/
+
+#~~ Run BayesAss3
+
+First run BA3-SNPS-autotune
+
+screen session on login02 ssh ehumble@login02-ext.ecdf.ed.ac.uk
+# add ba3 to path, this session only!
+export PATH=$PATH:/exports/cmvm/eddie/eb/groups/ogden_grp/emily/software/BayesAss3-SNPs-master/
+
+# check number of markers
+
+../../../../../software/BayesAss3-SNPs-master/countLociImmanc.sh -f alfredi_bayesass3.inp # 1553
+../../../../../software/BayesAss3-SNPs-master/countLociImmanc.sh -f birostris_bayesass3.inp # 6278
+
+# run autotune to determine optimal param values
+
+../../../../../software/BA3-SNPS-autotune-master/BA3-SNPS-autotune.py -i alfredi_bayesass3.inp -l 1553 -o alfredi_autotune
+../../../../../software/BA3-SNPS-autotune-master/BA3-SNPS-autotune.py -i birostris_bayesass3.inp -l 6278 -o birostris_autotune
+
+# move files. for some reasons only output file is saved where you tell it to:
+
+mv *stdout autotune/
+mv *indiv* autotune/
+mv *finalParams* autotune/
+mv *trace* autotune/
+mv alfredi_autotune autotune/
+mv birostris_autotune autotune/
+
+# take final params for running BA3-SNPs from finalParams files
+
+#~~ alfredi
+
+##Tuning completed early after 4 rounds.
+##M     A       F
+0.2125  0.4375  0.0750
+
+# coped inp file into each seed directory for each species and running the below within each
+
+# seed 10 / default
+# trace and individ files overwritten when running seed 1 prior to dir creation.
+# trace file on local. may need to rerun to get individual file again
+
+# RUN: seed_1
+../../../../../../software/BayesAss3-SNPs-master/BA3-SNPS -F alfredi_bayesass3.inp -l 1553 \
+-m 0.2125 -a 0.4375 -f 0.0750 \
+-i10000000 -b1000000 -n1000 \
+-t -g -u -o alfredi_bayesass3
+
+# RUN: seed 10
+
+../../../../../../software/BayesAss3-SNPs-master/BA3-SNPS -F alfredi_bayesass3.inp -l 1553 \
+-m 0.2125 -a 0.4375 -f 0.0750 \
+-i10000000 -b1000000 -n1000 \
+-t -g -u -s 1 -o alfredi_bayesass3_1
+
+# RUNNING seed 100 / screen ba3
+
+../../../../../../software/BayesAss3-SNPs-master/BA3-SNPS -F alfredi_bayesass3.inp -l 1553 \
+-m 0.2125 -a 0.4375 -f 0.0750 \
+-i10000000 -b1000000 -n1000 \
+-t -g -u -s 100 -o alfredi_bayesass3_100
+
+# RUNNING seed 1000 / screen ba31K
+
+../../../../../../software/BayesAss3-SNPs-master/BA3-SNPS -F alfredi_bayesass3.inp -l 1553 \
+-m 0.2125 -a 0.4375 -f 0.0750 \
+-i10000000 -b1000000 -n1000 \
+-t -g -u -s 1000 -o alfredi_bayesass3_1000
+
+# RUNNING seed 10000 / screen ba310K
+
+../../../../../../software/BayesAss3-SNPs-master/BA3-SNPS -F alfredi_bayesass3.inp -l 1553 \
+-m 0.2125 -a 0.4375 -f 0.0750 \
+-i10000000 -b1000000 -n1000 \
+-t -g -u -s 10000 -o alfredi_bayesass3_10000
+
+#~~ birostris
+
+##Tuning completed early after 4 rounds.
+##M     A       F
+0.2125  0.5500  0.0250
+
+# SEED 10 - DONE
+
+../../../../../../software/BayesAss3-SNPs-master/BA3-SNPS -F birostris_bayesass3.inp -l 6278 \
+-m 0.2125 -a 0.5500 -f 0.0250 \
+-i10000000 -b1000000 -n1000 \
+-t -g -u -o birostris_bayesass3
+
+# SEED 1 / screen ba3 - RUNNING
+
+../../../../../../software/BayesAss3-SNPs-master/BA3-SNPS -F birostris_bayesass3.inp -l 6278 \
+-m 0.2125 -a 0.5500 -f 0.0250 \
+-i10000000 -b1000000 -n1000 \
+-t -g -u -s 1 -o birostris_bayesass3_1
+
+# SEED 100 / screen ba3100 - RUNNING
+
+../../../../../../software/BayesAss3-SNPs-master/BA3-SNPS -F birostris_bayesass3.inp -l 6278 \
+-m 0.2125 -a 0.5500 -f 0.0250 \
+-i10000000 -b1000000 -n1000 \
+-t -g -u -s 100 -o birostris_bayesass3_100
+
+# SEED 1000 / screen ba31K - RUNNING
+
+../../../../../../software/BayesAss3-SNPs-master/BA3-SNPS -F birostris_bayesass3.inp -l 6278 \
+-m 0.2125 -a 0.5500 -f 0.0250 \
+-i10000000 -b1000000 -n1000 \
+-t -g -u -s 1000 -o birostris_bayesass3_1000
+
+# SEED 10000 / screen ba310K - RUNNING
+
+../../../../../../software/BayesAss3-SNPs-master/BA3-SNPS -F birostris_bayesass3.inp -l 6278 \
+-m 0.2125 -a 0.5500 -f 0.0250 \
+-i10000000 -b1000000 -n1000 \
+-t -g -u -s 10000 -o birostris_bayesass3_10000
+
+
+
+# Analyse output on local: 7.0_ba3.R
+
+
+
+
+# Try running with different population first in the input
+# Try running with even number of individuals per population
+
+
+#~~~~~~~~~~~~~#
+#   TREEMIX   #
+#~~~~~~~~~~~~~#
+
+#~~ Prepare files for TREEMIX
+
+# get list of individuals to keep
+# edit to add one random individual from outgroup sp
+
+awk '{print $1,$1}' bayesass/alfredi_bayesass3.ped > ../../../file_lists/alfredi_treemix
+awk '{print $1,$1}' bayesass/birostris_bayesass3.ped > ../../../file_lists/birostris_treemix
+
+# add to birostris: 1376 1376 Australia_Pacific
+# add to alfredi: 0732 0732 birostris sri lanka
+
+# edit files on local machine to contain location information 4.0_make_files.R
+
+#~~ Filter for linkage, mac 3 and geno 0.1 and get bed bim fam
+
+plink --bfile across_sp_geno4_dp6_ind_geno_depth_no_dups --indep 50 5 2 \
+--nonfounders --out across_sp_geno4_dp6_ind_geno_depth_no_dups --allow-extra-chr --debug
+
+plink --bfile across_sp_geno4_dp6_ind_geno_depth_no_dups --mac 3 --geno 0.1 \
+--extract across_sp_geno4_dp6_ind_geno_depth_no_dups.prune.in \
+--keep ../../../file_lists/alfredi_treemix \
+--make-bed --allow-no-sex --allow-extra-chr 0 --out treemix/alfredi_treemix
+
+# 2470 variants and 92 people pass filters and QC.
+
+plink --bfile across_sp_geno4_dp6_ind_geno_depth_no_dups --mac 3 --geno 0.1 \
+--extract across_sp_geno4_dp6_ind_geno_depth_no_dups.prune.in \
+--keep ../../../file_lists/birostris_treemix \
+--make-bed --allow-no-sex --allow-extra-chr 0 --out treemix/birostris_treemix
+
+# 6689 variants and 83 people pass filters and QC.
+
+# create freq files
+
+# in /treemix
+
+plink --bfile alfredi_treemix --freq --missing \
+--within ../../../../file_lists/alfredi_treemix --out alfredi_treemix \
+--allow-no-sex --allow-extra-chr 0
+
+plink --bfile birostris_treemix --freq --missing \
+--within ../../../../file_lists/birostris_treemix --out birostris_treemix \
+--allow-no-sex --allow-extra-chr 0
+
+# Gzip freq files
+
+for i in *strat ; do
+gzip ${i} ; done
+
+#~~ Get treemix input file using plink2treemix.py
+
+# Need python v2 for this to run, not 3
+
+module load python/2.7.10
+
+python ../../../../scripts/plink2treemix.py alfredi_treemix.frq.strat.gz alfredi.treemix.gz
+python ../../../../scripts/plink2treemix.py birostris_treemix.frq.strat.gz birostris.treemix.gz
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~#
+#      Run treemix      #
+#~~~~~~~~~~~~~~~~~~~~~~~#
+
+module unload python
+module load anaconda
+source activate treemix
+
+# Initial run of treemix for M={1-10} and 10 iterations per M:
+
+for m in {0..10} ; do
+for i in {1..10} ; do
+treemix \
+-i alfredi.treemix.gz \
+-o initial_runs/alfredi_${i}_m${m} \
+-global \
+-bootstrap \
+-root Mobula_birostris \
+-m ${m} ; done ; done
+
+cat initial_runs/alfredi_*.llik # must not be NULL
+
+for m in {0..10} ; do
+for i in {1..10} ; do
+treemix \
+-i birostris.treemix.gz \
+-o initial_runs/birostris_${i}_m${m} \
+-global \
+-bootstrap \
+-root Mobula_alfredi \
+-m ${m} ; done ; done
+
+cat initial_runs/birostris_*.llik # must not be NULL!
+
+# run optM in R on local to determine number of migration edges 8.0_treemix.R
+
+# Alternatively, determine the variance explained by each tree:
+
+for m in {0..10} ; do
+for i in {1..10} ; do
+perl ../../../../scripts/treemix_fraction.pl initial_runs/alfredi_${i}_m${m} > initial_runs/var_alfredi_${i}_m${m} ; done ; done
+
+
+for m in {0..10} ; do
+for i in {1..10} ; do
+perl ../../../../scripts/treemix_fraction.pl initial_runs/birostris_${i}_m${m} > initial_runs/var_birostris_${i}_m${m} ; done ; done
+
+
+# modified multiple workflows to actually get it to work! including:
+# https://github.com/carolindahms/TreeMix
+# https://github.com/marcomilanesi/BITE
+
+#~~ Re-run treemix with optimal number of migration edges 100 times
+
+#~~ Alfredi
+
+1 & 2
+
+for i in {1..100} ; do
+treemix \
+-i alfredi.treemix.gz \
+-o final_runs/alfredi_${i}_m2 \
+-global \
+-bootstrap \
+-root Mobula_birostris \
+-m 2 ; done
+
+
+#~~ Birostris
+
+0, 1, 2, 3, 4
+
+for i in {1..100} ; do
+treemix \
+-i birostris.treemix.gz \
+-o final_runs/birostris_${i}_m0 \
+-global \
+-bootstrap \
+-root Mobula_alfredi \
+-m 0 ; done
+
+
+# concatenate trees
+
+in /treemix/final_runs
+
+# alfredi
+
+for i in {1..100} ; do
+bootf="alfredi_"${i}"_m2.treeout.gz"
+gunzip -c $bootf | head -1 >> "alfredi_m2_boottree.tre" ; done
+	
+# birostris
+
+for i in {1..100} ; do
+bootf="birostris_"${i}"_m0.treeout.gz"
+gunzip -c $bootf | head -1 >> "birostris_m0_boottree.tre" ; done
+			
+	
+#~~ Phylip
+
+# alfredi
+
+# Find the position of outgroup
+
+posOutgroup=`head -1 alfredi_m2_boottree.tre | tr "," "\n" | grep Mobula_birostris -n | cut -d":" -f1`
+echo $posOutgroup
+echo alfredi_m2_boottree.tre > alfredi_m2.PhylipInputFile
+echo "O" >> alfredi_m2.PhylipInputFile
+echo $posOutgroup >> alfredi_m2.PhylipInputFile
+echo "Y" >> alfredi_m2.PhylipInputFile
+
+# Run Phylip
+
+consense < alfredi_m2.PhylipInputFile > screanout
+cat outtree | tr -d "\n" > alfredi_m2_outtree.newick
+echo >> alfredi_m2_outtree.newick
+rm outtree screanout
+mv outfile alfredi_m2_phylip.out
+cat alfredi_m2_phylip.out
+
+# birostris
+
+posOutgroup=`head -1 birostris_m0_boottree.tre | tr "," "\n" | grep Mobula_alfredi -n | cut -d":" -f1`
+echo $posOutgroup
+echo birostris_m0_boottree.tre > birostris_m0.PhylipInputFile
+echo "O" >> birostris_m0.PhylipInputFile
+echo $posOutgroup >> birostris_m0.PhylipInputFile
+echo "Y" >> birostris_m0.PhylipInputFile
+
+# Run Phylip
+
+consense < birostris_m0.PhylipInputFile > screanout
+cat outtree | tr -d "\n" > birostris_m0_outtree.newick
+echo >> birostris_m0_outtree.newick
+rm outtree screanout
+mv outfile birostris_m0_phylip.out
+cat birostris_m0_phylip.out
+
+
+# Run treemix with chosen number of migrations and consensus tree:
+
+treemix \
+-i ../alfredi.treemix.gz \
+-m 2 \
+-seed 100 \
+-root Mobula_birostris \
+-tf alfredi_m2_outtree.newick \
+-o alfredi_m2_treemix > alfredi_m2_logfile_treemix_boot.log
+
+treemix \
+-i ../birostris.treemix.gz \
+-m 0 \
+-seed 100 \
+-root Mobula_alfredi \
+-global \
+-tf birostris_m0_outtree.newick \
+-o birostris_m0_treemix > birostris_m0_logfile_treemix_boot.log
+
+# Plot trees using R 8.0_treemix.R
+
+birostirs
+# M=0 is complete. do not touch files!
+# need to redo for 1-4 to explore trees
+# could also play around with alfredi n migrations opt m versus likelihood
+# could also rerun with more birostris samples!
+
+
+
+

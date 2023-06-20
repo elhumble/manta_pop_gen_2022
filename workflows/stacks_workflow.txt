@@ -1,0 +1,390 @@
+# Manta population genetics workflow 2020
+
+#~~~~~~~~~~~~~~~~~~~~~~~#
+# Download to datastore #
+#~~~~~~~~~~~~~~~~~~~~~~~#
+
+# Downloaded Jane's data from dropbox. See Jane_data_download folder for more details.
+# Raw and demultiplexed data downloaded onto datastore
+# Sample 0138 and 1122 are duplicates across libraries without identifiers in sample names
+# Unlike duplicates within libs e.g. 1271_poscon or 0133_dup
+# Renamed these samples in barcode files to 0138_lib1, 0138_lib2 etc.
+
+/demultiplexed (75G)
+	/manta
+		/lib_1
+		/lib_2
+		/lib_3
+	/phylogenetics
+	/pilot
+/raw (120G)
+	/manta
+		/lib_1
+		/lib_2
+		/lib_3
+	/phylogenetics
+	/pilot
+	/barcodes	
+
+#~~~~~~~~~~~~~~~~~~~#
+#  Upload to EDDIE  #
+#~~~~~~~~~~~~~~~~~~~#
+
+qsub 1.0_StageIn.sh
+
+# Transfers demultiplexed and raw data
+
+#~~~~~~~~~~~~~~~~~~~#
+#    Demultiplex    #
+#~~~~~~~~~~~~~~~~~~~#
+
+qsub 1.0_process_radtags.sh
+
+# Running as array job across libs
+# Output into data/out/demultiplexed/lib_1 lib_2 and lib_3 dirs on scratch
+# Jane's barcodes files edited to identify across lib duplicates (_lib1 etc.)
+
+# <1G
+# ~7 hours
+
+#~~ Prepare reads for denovo map
+
+# Using both forward and reverse reads (Jane used forward only)
+# In each lib dir get list of forward files (including rem)
+# e.g.
+
+ls *fq.gz > file_names_lib_3
+
+# Downloaded list of files into /data in working local directory
+# Create script to concatenate forward read files using R (1.0_cat_demultiplexed_files.R)
+# Moved output script onto eddie and into manta project directory
+
+qsub 1.0_cat_demultiplexed_files.R
+
+# Output saved onto scratch
+
+# 280 samples including duplicates and outgroup sp.
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#     Optimise denovomap params     #
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+# First download processradtags log files onto local
+
+# Use R script to write popmaps (file lists) for parameter optimisation (1.1_prep_pop_maps.R)
+# Note: paramater optimisation assumes one population
+# This script also writes popmaps for all other analyses
+
+# NB: Individuals with low nreads, dups, and outgroups removed for this
+
+# Files:
+
+# All species subset (pop_map_across_sp_param_optimisation.txt)
+# Alfredi subset (pop_map_alfredi_param_optimisation.txt)
+# Birostris subset (pop_map_birostris_param_optimisation.txt)
+
+# All species full dataset (pop_map_across_sp_full_dataset.txt)
+# Alfredi full dataset (pop_map_alfredi_full_dataset.txt)
+# Birostris full dataset (pop_map_birostris_full_dataset.txt)
+
+#~~ Run denovo map optimisation on subset of individuals using across species parameter combination
+
+# These params follow those outlined in Rochette et al
+# Tried Paris strategy but not as convinced. Difference is probably 100 SNPs
+
+# TO DO:
+# Clean up optimisation params for within species as have more than Rochette
+
+
+#~~ Everything below is done for alfredi, birostris and across species
+
+# Run denovo map optimisation for across species using parameter combo files:
+
+qsub 2.0_denovo_map_opt.sh
+
+# Across species
+# 12000 secs (4 hrs) and 11G
+
+# Alfredi
+# ~10000 secs and 11G
+# Job 1 failed for lack of memory. Removed this option from the paramater list 
+
+# Birostris
+
+# ~12000 secs and 10G
+
+
+#~~ Run populations to determine how many new polymorphic loci are present in at least 80% of pop
+
+qsub 2.1_pops_param.sh
+
+<20 seconds
+<1G
+
+
+#~~ Get population log files onto local machine via datastore
+
+# On qlogin staging node
+
+# This command finds a specific file in directory list and copies it to a target while
+# retaining directory structure
+
+# across species PE
+
+find across_sp_opt/ -name 'populations.log.distribs' | cpio -pdm \
+/exports/cmvm/datastore/eb/groups/ogden_grp/Conservation_Science/Conservation_Genetics/\
+GENOME_PROJECTS/emily/mobulid_2020/data/out/
+
+# alfredi
+
+find alfredi_opt/ -name 'populations.log.distribs' | cpio -pdm \
+/exports/cmvm/datastore/eb/groups/ogden_grp/Conservation_Science/Conservation_Genetics/\
+GENOME_PROJECTS/emily/mobulid_2020/data/out
+
+# birostris
+
+find birostris_opt/ -name 'populations.log.distribs' | cpio -pdm \
+/exports/cmvm/datastore/eb/groups/ogden_grp/Conservation_Science/Conservation_Genetics/\
+GENOME_PROJECTS/emily/mobulid_2020/data/out
+
+
+# Move files from datastore onto local interactively
+
+
+#~~ Determine best parameter combination
+
+# Use R script 1.2_param_optimisation.R on local to determine best parameter combo by looking
+# at number of loci, number of polymorphic loci and number of SNPs
+# Calculates this from the bottom of all population log files \
+# as in here: https://groups.google.com/g/stacks-users/c/V1ehPuJTd7Q/m/12IGSFiyBgAJ
+
+# I compared with a few other ways to calculate these stats 
+#(https://groups.google.com/g/stacks-users/c/A99aMiqLAyQ/m/gv-2pbiwDgAJ)
+
+
+#~~ Across species analysis
+
+PE
+-m 3
+-M 3
+-n 4
+
+#~~ Within species analysis
+
+ALFREDI
+-m 3 
+-M 3
+-n 4
+
+BIROSTRIS
+-m 3
+-M 3
+-n 4
+
+#~~~~~~~~~~~~~#
+#   USTACKS   #
+#~~~~~~~~~~~~~#
+
+# Run ustacks separately on all samples using optimised -m and -M params
+
+qsub 3.0_ustacks.sh
+
+# <2G
+# mostly <1000 secs some up to 6000
+
+# Output is into scratch dir stacks_PE / stacks_alfredi / stacks_birostris
+
+# Extract per-locus coverage of all samples from log files of ustacks
+# Should be in line with read coverage from process rad tags out
+
+# Use error output files for this
+
+# PID for SE across sp: 10003842
+# PID for PE across sp: 10300157
+# PID for alfredi: 10358370
+# PID for birostris: 10744148
+
+# On qlogin staging node
+
+# SE
+find e_files/ -name 'ustacks.e10003842.*' | cpio -pdm \
+/exports/cmvm/datastore/eb/groups/ogden_grp/Conservation_Science/Conservation_Genetics/\
+GENOME_PROJECTS/emily/mobulid_2020/data/out/ustacks_logs_SE
+
+# PE across species
+
+find e_files/ -name 'ustacks.e10300157.*' | cpio -pdm \
+/exports/cmvm/datastore/eb/groups/ogden_grp/Conservation_Science/Conservation_Genetics/\
+GENOME_PROJECTS/emily/mobulid_2020/data/out/ustacks_logs_across_sp
+
+# Alfredi:
+
+find e_files/ -name 'ustacks.e10358370.*' | cpio -pdm \
+/exports/cmvm/datastore/eb/groups/ogden_grp/Conservation_Science/Conservation_Genetics/\
+GENOME_PROJECTS/emily/mobulid_2020/data/out/ustacks_logs_alfredi
+
+
+# Birostris:
+
+find e_files/ -name 'ustacks.e10744148.*' | cpio -pdm \
+/exports/cmvm/datastore/eb/groups/ogden_grp/Conservation_Science/Conservation_Genetics/\
+GENOME_PROJECTS/emily/mobulid_2020/data/out/ustacks_logs_birostris
+
+
+# Move files from datastore onto local interactively and run 1.3_get_catalog.R
+
+# Pick ~40-200 samples to be included in the catalog that have high coverage and are representative of the genetic 
+# diversity in the dataset, e.g. 10 samples with highest coverage in each pop. May want to ignore anything with really 
+# high coverage. Alleles not present in these samples will be ignored.
+
+*************************************************************************************************************
+# Including all samples in the catalog adds noise, increases computation time and is uneccessary if low MAF #
+# variants are not of primary interest. This might not be too good for FST outlier                          #
+*************************************************************************************************************
+
+# Filtering individuals with coverage < 25
+# Removing hybrid
+# Then selected up to 10 individuals per species / location
+
+# Write list to population map `across_sp_catalog.txt` `alfredi_catalog.txt` `birostris_catalog.txt`
+
+#~~~~~~~~~~~~~#
+#   CSTACKS   #
+#~~~~~~~~~~~~~#
+
+# Run cstacks to create the catalog using the optimal -n parameter
+
+qsub 3.1_ccstacks.sh
+
+# output is in stacks dir on scratch
+
+
+# PE across species
+# 21796 secs and 10G
+
+# Alfredi
+# 4538 and 5G
+
+# Birostris
+# 9909 secs and 6G
+
+#~~~~~~~~~~~~~#
+#   SSTACKS   #
+#~~~~~~~~~~~~~#
+
+# Run sstacks on each sample separately to match the samples in the catalog
+# array job. full dataset
+
+qsub 3.2_sstacks.sh
+
+
+# PE across species
+# 300 secs, 11G per sample
+
+# Alfredi
+# 150 secs, 6G
+
+# Birostris
+# ~150 secs, ~7G
+
+
+#~~~~~~~~~~~~~#
+#   TSV2BAM   #
+#~~~~~~~~~~~~~#
+
+# Run tsv2bam to transpose the data so it is stored by locus, instead of by sample. We will include
+# paired-end reads using tsv2bam. tsv2bam expects the paired read files to be in the samples
+# directory and they should be named consistently with the single-end reads,
+# e.g. sample_01.1.fq.gz and sample_01.2.fq.gz, which is how process_radtags will output them.
+
+qsub 3.3_tsv2bam.sh
+
+# PE
+# 1774 seconds, 12G
+
+# Alfredi
+
+# 800 secs, 13G
+
+# Birostris
+
+# 612 secs, 12G
+
+# output is bam files in stacks_PE / stacks_alfredi / stacks_birostris dir
+
+
+#~~~~~~~~~~~~~#
+#   GSTACKS   #
+#~~~~~~~~~~~~~#
+
+# Run gstacks: build a paired-end contig from the metapopulation data (if paired-reads provided),
+# align reads per sample, call variant sites in the population, genotypes in each individual.
+
+qsub 3.4_gstacks.sh
+
+# outputs catalog.fa file
+
+# PE
+# 4220 secs and 18G
+
+# Alfredi
+# 1300 secs 5G
+
+# Birostris
+# 1081 secs 6.5G
+
+#~~~~~~~~~~~~~~~~~#
+#   POPULATIONS   #
+#~~~~~~~~~~~~~~~~~#
+
+# Use populations to export genotype calls into useful format
+
+#~~ Run populations to get vcf file out at this stage
+
+# No filters
+
+qsub 3.5_populations.sh
+
+# 300 secs, < 7 G
+
+# Copied vcfs onto group space folders
+
+#~~~~~~~~~~~~~~~~~#
+#    STAGE OUT    #
+#~~~~~~~~~~~~~~~~~#
+
+# All on datastore
+
+~~ Demultiplexed data
+
+lib_1
+lib_2
+lib_3
+
+# DONE
+
+~~ denovomap optimisation
+
+# Best to do this after transferring log files onto local for parameter selection
+# Otherwise run the find command on the full directories
+
+mobulid_2020/data/out/across_sp_opt # DONE
+mobulid_2020/data/out/alfredi_opt # DONE
+mobulid_2020/data/out/birostris_opt # DONE
+
+~~ ustacks / sstacks / cstacks / tsvbam / gstacks / populations
+
+# Full dirs
+
+mobulid_2020/data/out/stacks_PE # DONE
+mobulid_2020/data/out/stacks_alfredi # DONE
+mobulid_2020/data/out/stacks_birostris # DONE
+
+# ustacks logs for selecting catalog
+
+mobulid_2020/data/out/ustacks_logs_across_sp
+mobulid_2020/data/out/ustacks_logs_alfredi
+mobulid_2020/data/out/ustacks_logs_birostris
+
+
+
