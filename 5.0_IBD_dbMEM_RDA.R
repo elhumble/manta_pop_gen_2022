@@ -1,4 +1,5 @@
-# Oversea distance ~ Fst
+# Script to characterise oversea distance ~ Fst (isolation by distance)
+# Using dbMEM by RDA analysis
 
 library(marmap)
 library(data.table)
@@ -11,6 +12,8 @@ library(tidyr)
 library(hierfstat)
 library(scales)
 library(geosphere)
+library(vegan)
+library(adespatial)
 source("scripts/theme_emily.R")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -131,16 +134,28 @@ plot(fstWC_alf ~ geodist_alf)
 man_alf <- mantel.rtest(geodist_alf, fstWC_alf, nrepet = 1000)
 man_alf
 
+#~~ dbMEM & RDA analysis
+
+# Transform genetic distances into PCs
+fstWC_alf_pc <- prcomp(as.dist(fstWC_alf))
+
+# Transform geographic distances into dbMEMs
+geodist_alf_dbmem <- dbmem(as.dist(geodist_alf))
+
+# RDA
+alf_rda <- rda(fstWC_alf_pc$x, geodist_alf_dbmem)
+RsquareAdj(alf_rda)
+anova(alf_rda, perm=1000)
+
+
 #~~ Create labels for plots
 
 fstlab_alf <- expression(italic("F")[ST])
-r1_alf <- round(man_alf$obs,2)
-p1_alf <- format(round(man_alf$pvalue, 3), nsmall=3)
 
 #~~ Create dataframe of distance matrices
 
 df_dist_alf <- data.frame(geodistance=as.vector(geodist_alf),
-                gendistance=as.vector(fstWC_alf))
+                          gendistance=as.vector(fstWC_alf))
 
 #~~ Plot
 
@@ -157,9 +172,6 @@ ibd_alf <- ggplot(df_dist_alf) +
   theme_emily()
 
 ibd_alf
-man_alf
-r1_alf
-p1_alf
 
 saveRDS(ibd_alf, "figs/ibd_alf.RDS")
 
@@ -290,16 +302,28 @@ plot(fstWC_bir ~ geodist_bir)
 man_bir <- mantel.rtest(geodist_bir, fstWC_bir, nrepet = 1000)
 man_bir
 
+
+#~~ dbMEM by RDA
+
+fstWC_bir_pc <- prcomp(as.dist(fstWC_bir))
+
+geodist_bir_dbmem <- dbmem(as.dist(geodist_bir))
+
+rda_bir <- rda(fstWC_bir_pc$x, geodist_bir_dbmem)
+
+RsquareAdj(rda_bir)
+anova(rda_bir, perm=1000)
+
 #~~ Create labels for plots
 
 fstlab_bir <- expression(italic("F")[ST])
-r1_bir <- round(man_bir$obs,2)
-p1_bir <- format(round(man_bir$pvalue, 3), nsmall=3)
+#r1_bir <- round(man_bir$obs,2)
+#p1_bir <- format(round(man_bir$pvalue, 3), nsmall=3)
 
 #~~ Create dataframe of distance matrices
 
 df_dist_bir <- data.frame(geodistance=as.vector(geodist_bir),
-                      gendistance=as.vector(fstWC_bir))
+                          gendistance=as.vector(fstWC_bir))
 
 #~~ Plot
 
@@ -319,9 +343,6 @@ ibd_bir <- ggplot(df_dist_bir) +
 
 ibd_bir
 
-man_bir
-r1_bir
-p1_bir
 
 saveRDS(ibd_bir, "figs/ibd_bir.RDS")
 
