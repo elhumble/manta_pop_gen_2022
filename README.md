@@ -5,9 +5,9 @@ Humble E, Hosegood J, Carvalho G, de Bruyn M, Creer S, Stevens GMW, Armstrong A,
 **Summary**
 -------------
 
-This repository contains the scripts required for analysis of population structure, differentiation, gene flow, heterozygosity and historical relationships. The repository also contains scripts for producing all figures in the manuscript.
+This repository contains the scripts required for all analysis in the paper above. The repository also contains scripts for producing all figures.
 
-For the STACKS SNP calling and filtering pipeline refer to `workflows.`
+For the STACKS and SNP calling and filtering pipeline refer to the `/workflows` directory. The `/scripts` directory contains scripts that are called in the main workflow.
 
 **Code structure**
 -------------
