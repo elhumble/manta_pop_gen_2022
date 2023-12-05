@@ -1,3 +1,5 @@
+# Script to calculate and plot population pairwise Fst
+
 library(adegenet)
 library(ggplot2)
 library(dplyr)
@@ -51,7 +53,7 @@ inds <- data.frame(gl@ind.names) %>%
                               Location == "Chagos" ~ "CHAG",
                               Location == "Australia Pacific" ~ "AP",
                               Location == "Hawaii" ~ "HAW",
-                              Location == "Fiji" ~ "FIJ"))
+                              Location == "Fiji" ~ "FIJI"))
 
 pop(gl) <- inds$Location
 
@@ -107,13 +109,21 @@ saveRDS(alf_fst_plot, "figs/fst_alf.RDS")
 
 #~ Plotting CIs
 
+
+
 alf_fst_CI <- pw_fst_boot_alf %>%
   unite(Pairwise, c("Population1", "Population2")) %>%
   mutate(Pairwise = fct_reorder(Pairwise, desc(Fst))) %>%
   mutate(sig = as.factor(case_when(`Lower bound CI limit` < 0 & `Upper bound CI limit` > 0 ~ 1,
                                    TRUE ~ 0))) %>%
   filter(!grepl("AP", Pairwise)) %>%
-  ggplot(aes(Fst, Pairwise, col = sig, fill = sig)) +
+  mutate(col = case_when(Pairwise == "MAL_CHAG" | 
+                           Pairwise == "MAL_SEY" |
+                           Pairwise == "SEY_CHAG" |
+                           Pairwise == "HAW_FIJI" ~ "#3B9AB2",
+                         TRUE ~ "black")) %>%
+  mutate(model = paste0("<span style=\"color: ", col, "\">", Pairwise, "</span>")) %>%
+  ggplot(aes(Fst, fct_reorder(model, Fst), col = sig, fill = sig)) +
   geom_pointrange(aes(xmax = `Upper bound CI limit`, xmin = `Lower bound CI limit`), 
                   size = 0.3, 
                   position=position_dodge(0.2)) +
@@ -124,11 +134,11 @@ alf_fst_CI <- pw_fst_boot_alf %>%
         plot.margin = unit(c(1,0.5,0.5,0.5), "cm"),
         axis.line.y = element_blank(),
         axis.title.y = element_blank(),
-        plot.title = element_text(size = 12)) +
+        plot.title = element_text(size = 12),
+        axis.text.y = ggtext::element_markdown()) +
   ggtitle("A") + xlab(expression(italic("F")[ST]))
 
 alf_fst_CI
-
 
 #~~ Some stats
 
@@ -287,7 +297,12 @@ bir_fst_CI <- pw_fst_boot_bir %>%
   #                       TRUE ~ 0))) %>%
   mutate(sig = as.factor(case_when(`p-value` < 0.05 ~ 1,
                                    TRUE ~ 0))) %>%
-  ggplot(aes(Fst, Pairwise, col = sig, fill = sig)) +
+  mutate(col = case_when(Pairwise == "MP_PERU" | 
+                           Pairwise == "PHI_PERU" |
+                           Pairwise == "MP_PHI" ~ "#3B9AB2",
+                         TRUE ~ "black")) %>%
+  mutate(model = paste0("<span style=\"color: ", col, "\">", Pairwise, "</span>")) %>%
+  ggplot(aes(Fst, fct_reorder(model, Fst), col = sig, fill = sig)) +
   geom_pointrange(aes(xmax = `Upper bound CI limit`, xmin = `Lower bound CI limit`), 
                   size = 0.3, 
                   position=position_dodge(0.2)) +
@@ -298,10 +313,12 @@ bir_fst_CI <- pw_fst_boot_bir %>%
         plot.margin = unit(c(1,0.5,0.5,0.5), "cm"),
         axis.line.y = element_blank(),
         axis.title.y = element_blank(),
-        plot.title = element_text(size = 12)) +
+        plot.title = element_text(size = 12),
+        axis.text.y = ggtext::element_markdown()) +
   ggtitle("B") + xlab(expression(italic("F")[ST]))
 
 bir_fst_CI
+
 
 alf_fst_plot + bir_fst_plot
 

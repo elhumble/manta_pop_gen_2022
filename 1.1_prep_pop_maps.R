@@ -58,21 +58,26 @@ df <- prt %>%
 # Get some numbers
 
 df %>% filter(Species == "Mobula alfredi") %>%
-  filter(is.na(Dup)) %>%
+  distinct(Filename, .keep_all = T) %>%
   group_by(Location) %>%
   summarise(n = n())
 
 df %>% filter(Species == "Mobula birostris") %>%
-  filter(is.na(Dup)) %>%
+  distinct(Filename, .keep_all = T) %>%
   filter(Filename != 1055) %>%
   group_by(Location) %>%
   summarise(n = n())
 
-# write table for supplementary material
+df %>% filter(Species == "Mobula alfredi") %>%
+  distinct(Filename, .keep_all = T) %>%
+  group_by(Species) %>%
+  summarise(n = n())
 
-df %>% filter(Species == "Mobula birostris" | Species == "Mobula alfredi") %>%
-  select(Filename, Dup, Species, Location, Sampling_method, CITES_information) %>%
-  write.csv("data/meta/Table_S1.csv", quote = F, col.names = T, row.names = F)
+df %>% filter(Species == "Mobula birostris") %>%
+  distinct(Filename, .keep_all = T) %>%
+  filter(Filename != 1055) %>%
+  group_by(Species) %>%
+  summarise(n = n())
 
 # Plot of percent reads retained
 
@@ -112,8 +117,6 @@ prt_filter <- ggplot(prt, aes(percent.retained, rank)) +
 prt_filter
 
 ggsave("figs/prt_filter.png", prt_filter, height = 4, width = 5)
-
-# Jane had 216 individuals in the final dataset
 
 nrow(filter(prt, percent.retained > 0.2))
 nrow(filter(prt, percent.retained > 0.5))
@@ -237,6 +240,7 @@ write.table(full_dataset_birostris[c(1,2)], "data/file_lists/pop_map_birostris_f
             col.names = F, row.names = F, quote = F, sep = "\t")
 
 scp data/pop_map_birostris_full_dataset.txt ehumble@eddie.ecdf.ed.ac.uk:/exports/cmvm/eddie/eb/groups/ogden_grp/emily/manta_pop_gen_2020/file_lists/pop_map_birostris_full_dataset.txt
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # Subset of individuals with highest reads #

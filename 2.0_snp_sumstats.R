@@ -1,8 +1,9 @@
-# Summary stats of raw SNPs
+# Depth and popgen summary stats of SNP datasets
 
 library(data.table)
 library(dplyr)
 library(tidyr)
+library(diveRsity)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 #      Across species       #
@@ -81,8 +82,11 @@ summary(imiss$F_MISS)
 #~~ Filtered site mean depth
 
 # scp ehumble@eddie.ecdf.ed.ac.uk:/exports/cmvm/eddie/eb/groups/ogden_grp/emily/manta_pop_gen_2020/data/out/stacks_PE/across_sp_geno4_dp6_ind.ldepth.mean data/vcftools/across_sp/ 
+# scp ehumble@eddie.ecdf.ed.ac.uk:/exports/cmvm/eddie/eb/groups/ogden_grp/emily/manta_pop_gen_2020/data/out/stacks_PE/across_sp_geno4_dp6_ind_geno_depth.ldepth.mean data/vcftools/across_sp/ 
 
 ldepth <- fread("data/vcftools/across_sp/across_sp_geno4_dp6_ind.ldepth.mean", colClasses = "numeric")
+ldepth <- fread("data/vcftools/across_sp/across_sp_geno4_dp6_ind_geno_depth.ldepth.mean", colClasses = "numeric")
+
 summary(ldepth$MEAN_DEPTH)
 
 CI <- 0.95
@@ -90,3 +94,94 @@ CI_meanDP <- stats::quantile(ldepth$MEAN_DEPTH, c((1-CI)/2,1-(1-CI)/2), na.rm=TR
 CI_sumDP <- stats::quantile(ldepth$MEAN_DEPTH, c((1-CI)/2,1-(1-CI)/2), na.rm=TRUE)
 CI_meanDP
 CI_sumDP
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#      Population genetic statistics     #
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+infile <- "data/plink/across_sp/alfredi_geno4_dp6_ind_geno_depth_no_dups_maf_unrelated_ld_genepop.txt"
+
+genepop_alf <- readGenepop(infile = infile, gp = 3, bootstrap = FALSE)
+
+genepop_alf$npops
+
+alf_snp_stats <- basicStats(infile = "data/plink/across_sp/alfredi_geno4_dp6_ind_geno_depth_no_dups_maf_unrelated_ld_genepop.txt", 
+                           outfile = "basic_stat", 
+                           fis_ci = TRUE, ar_ci = TRUE, fis_boots = 999, 
+                           ar_boots = 999, mc_reps = 9999, 
+                           rarefaction = FALSE, ar_alpha = 0.05, 
+                           fis_alpha = 0.05)
+
+rownames(alf_snp_stats$main_tab$`1376`)
+alf_snp_stats$main_tab$`1277`$overall
+alf_snp_stats$main_tab$`1336`$overall
+alf_snp_stats$main_tab$`0133`$overall
+alf_snp_stats$main_tab$`0689`$overall
+alf_snp_stats$main_tab$`0141`$overall
+alf_snp_stats$main_tab$`1376`$overall
+
+alf_snp_stats_df <- data.frame(statistic = rownames(alf_snp_stats$main_tab$`1376`),
+                               maldives = alf_snp_stats$main_tab$`1277`$overall,
+                               hawaii = alf_snp_stats$main_tab$`1336`$overall,
+                               seychelles = alf_snp_stats$main_tab$`0133`$overall,
+                               chagos = alf_snp_stats$main_tab$`0689`$overall,
+                               fiji = alf_snp_stats$main_tab$`0141`$overall,
+                               aus_pac = alf_snp_stats$main_tab$`1376`$overall) %>%
+  pivot_longer(cols = maldives:aus_pac) %>%
+  pivot_wider(names_from = name, values_from = value)
+
+#~~ birostris
+
+bir_snp_stats <- basicStats(infile = "data/plink/across_sp/birostris_geno4_dp6_ind_geno_depth_no_dups_maf_unrelated_ld_genepop.txt", 
+                              outfile = "basic_stat", 
+                              fis_ci = TRUE, ar_ci = TRUE, fis_boots = 999, 
+                              ar_boots = 999, mc_reps = 9999, 
+                              rarefaction = FALSE, ar_alpha = 0.05, 
+                              fis_alpha = 0.05)
+
+rownames(bir_snp_stats$main_tab$`0732`)
+bir_snp_stats$main_tab$`0732`$overall
+bir_snp_stats$main_tab$`1152`$overall
+bir_snp_stats$main_tab$`1104`$overall
+bir_snp_stats$main_tab$`0985`$overall
+bir_snp_stats$main_tab$`1062`$overall
+bir_snp_stats$main_tab$`1183`$overall
+
+bir_snp_stats_df <- data.frame(statistic = rownames(bir_snp_stats$main_tab$`0732`),
+                               sri_lanka = bir_snp_stats$main_tab$`0732`$overall,
+                               mex_pac = bir_snp_stats$main_tab$`1152`$overall,
+                               phil = bir_snp_stats$main_tab$`1104`$overall,
+                               mex_car = bir_snp_stats$main_tab$`0985`$overall,
+                               peru = bir_snp_stats$main_tab$`1062`$overall,
+                               sa = bir_snp_stats$main_tab$`1183`$overall) %>%
+  pivot_longer(cols = sri_lanka:sa) %>%
+  pivot_wider(names_from = name, values_from = value)
+
+
+#~~ species
+
+infile <- "data/plink/across_sp/across_sp_geno4_dp6_ind_geno_depth_no_dups_mac_geno_genepop.txt"
+genepop_sp <- readGenepop(infile = infile, gp = 3, bootstrap = FALSE)
+genepop_sp$npops
+
+sp_snp_stats <- basicStats(infile = "data/plink/across_sp/across_sp_geno4_dp6_ind_geno_depth_no_dups_mac_geno_genepop.txt", 
+                            outfile = "basic_stat", 
+                            fis_ci = TRUE, ar_ci = TRUE, fis_boots = 999, 
+                            ar_boots = 999, mc_reps = 9999, 
+                            rarefaction = FALSE, ar_alpha = 0.05, 
+                            fis_alpha = 0.05)
+
+rownames(sp_snp_stats$main_tab$`1277`)
+sp_snp_stats$main_tab$`1277`$overall
+sp_snp_stats$main_tab$`0732`$overall
+
+sp_snp_stats_df <- data.frame(statistic = rownames(sp_snp_stats$main_tab$`1277`),
+                               alfredi = sp_snp_stats$main_tab$`1277`$overall,
+                               birostris = sp_snp_stats$main_tab$`0732`$overall) %>%
+  pivot_longer(cols = alfredi:birostris) %>%
+  pivot_wider(names_from = name, values_from = value)
+
+
+
+
+

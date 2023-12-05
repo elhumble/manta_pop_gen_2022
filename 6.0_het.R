@@ -71,10 +71,7 @@ MLH <- MLH %>%
 
 MLH %>% filter(Species == "Mobula birostris")
 
-pal <- c("#3B9AB2", "#7E8AA2") 
-pal <- c("#53A49D", "#A69DAF") 
 pal <- c("#53A49D", "#D27A15")
-
 
 # Species level
 
@@ -97,6 +94,32 @@ sp_MLH
 
 ggsave("figs/MLH_species.png", sp_MLH, width = 5, height = 4)
 
+# NAs
+
+MLH <- MLH %>%
+  mutate(prop_miss = NAs/15312)
+
+ggplot(filter(MLH, species_abb == "M. alfredi" | species_abb == "M. birostris"), 
+                 aes(as.factor(species_abb), prop_miss, fill = species_abb)) +
+  geom_half_point(side = "l", shape = 21, alpha = 0.5, stroke = 0.1, size = 3,
+                  transformation_params = list(height = 0, width = 1.3, seed = 1)) +
+  geom_half_boxplot(side = "r", outlier.color = NA,
+                    width = 0.6, lwd = 0.3, color = "black",
+                    alpha = 0.8) +
+  theme_emily() +
+  scale_fill_manual(values = pal) + 
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.text.x=element_text(face=c("italic")))
+
+mod <- lm(prop_miss ~ species_abb, data = filter(MLH, species_abb == "M. alfredi" | species_abb == "M. birostris"))
+tidy(mod, conf.int = TRUE)
+summary.lm(mod)
+
+
+
+mean(filter(MLH, species_abb == "M. alfredi")$prop_miss)
+mean(filter(MLH, species_abb == "M. birostris")$prop_miss)
 
 #~~ Population level
 
@@ -160,6 +183,9 @@ ggsave("figs/MLH_all.png", sp_MLH + alf_MLH + bir_MLH +
          plot_layout(nrow = 1, widths = c(0.7,1.3,1.3)),
                      width = 10, height = 3.5)
 
+ggsave("figs/MLH_all.pdf", sp_MLH + alf_MLH + bir_MLH +
+         plot_layout(nrow = 1, widths = c(0.7,1.3,1.3)),
+       width = 10, height = 3.5, dev = cairo_pdf)
 
 #~~ Some stats
 

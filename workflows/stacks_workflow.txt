@@ -1,14 +1,10 @@
-# Manta population genetics workflow 2020
+# Manta population genetics workflow 2023
 
 #~~~~~~~~~~~~~~~~~~~~~~~#
 # Download to datastore #
 #~~~~~~~~~~~~~~~~~~~~~~~#
 
-# Downloaded Jane's data from dropbox. See Jane_data_download folder for more details.
 # Raw and demultiplexed data downloaded onto datastore
-# Sample 0138 and 1122 are duplicates across libraries without identifiers in sample names
-# Unlike duplicates within libs e.g. 1271_poscon or 0133_dup
-# Renamed these samples in barcode files to 0138_lib1, 0138_lib2 etc.
 
 /demultiplexed (75G)
 	/manta
@@ -17,6 +13,7 @@
 		/lib_3
 	/phylogenetics
 	/pilot
+	
 /raw (120G)
 	/manta
 		/lib_1
@@ -42,21 +39,21 @@ qsub 1.0_process_radtags.sh
 
 # Running as array job across libs
 # Output into data/out/demultiplexed/lib_1 lib_2 and lib_3 dirs on scratch
-# Jane's barcodes files edited to identify across lib duplicates (_lib1 etc.)
+# JHs barcodes files edited to identify across lib duplicates (_lib1 etc.)
 
 # <1G
 # ~7 hours
 
 #~~ Prepare reads for denovo map
 
-# Using both forward and reverse reads (Jane used forward only)
+# Using both forward and reverse reads
 # In each lib dir get list of forward files (including rem)
 # e.g.
 
 ls *fq.gz > file_names_lib_3
 
 # Downloaded list of files into /data in working local directory
-# Create script to concatenate forward read files using R (1.0_cat_demultiplexed_files.R)
+# Create script to concatenate read files using R (1.0_cat_demultiplexed_files.R)
 # Moved output script onto eddie and into manta project directory
 
 qsub 1.0_cat_demultiplexed_files.R
@@ -90,11 +87,6 @@ qsub 1.0_cat_demultiplexed_files.R
 #~~ Run denovo map optimisation on subset of individuals using across species parameter combination
 
 # These params follow those outlined in Rochette et al
-# Tried Paris strategy but not as convinced. Difference is probably 100 SNPs
-
-# TO DO:
-# Clean up optimisation params for within species as have more than Rochette
-
 
 #~~ Everything below is done for alfredi, birostris and across species
 
@@ -107,7 +99,6 @@ qsub 2.0_denovo_map_opt.sh
 
 # Alfredi
 # ~10000 secs and 11G
-# Job 1 failed for lack of memory. Removed this option from the paramater list 
 
 # Birostris
 
@@ -237,10 +228,8 @@ GENOME_PROJECTS/emily/mobulid_2020/data/out/ustacks_logs_birostris
 # diversity in the dataset, e.g. 10 samples with highest coverage in each pop. May want to ignore anything with really 
 # high coverage. Alleles not present in these samples will be ignored.
 
-*************************************************************************************************************
 # Including all samples in the catalog adds noise, increases computation time and is uneccessary if low MAF #
-# variants are not of primary interest. This might not be too good for FST outlier                          #
-*************************************************************************************************************
+# variants are not of primary interest.
 
 # Filtering individuals with coverage < 25
 # Removing hybrid
@@ -348,43 +337,5 @@ qsub 3.5_populations.sh
 # 300 secs, < 7 G
 
 # Copied vcfs onto group space folders
-
-#~~~~~~~~~~~~~~~~~#
-#    STAGE OUT    #
-#~~~~~~~~~~~~~~~~~#
-
-# All on datastore
-
-~~ Demultiplexed data
-
-lib_1
-lib_2
-lib_3
-
-# DONE
-
-~~ denovomap optimisation
-
-# Best to do this after transferring log files onto local for parameter selection
-# Otherwise run the find command on the full directories
-
-mobulid_2020/data/out/across_sp_opt # DONE
-mobulid_2020/data/out/alfredi_opt # DONE
-mobulid_2020/data/out/birostris_opt # DONE
-
-~~ ustacks / sstacks / cstacks / tsvbam / gstacks / populations
-
-# Full dirs
-
-mobulid_2020/data/out/stacks_PE # DONE
-mobulid_2020/data/out/stacks_alfredi # DONE
-mobulid_2020/data/out/stacks_birostris # DONE
-
-# ustacks logs for selecting catalog
-
-mobulid_2020/data/out/ustacks_logs_across_sp
-mobulid_2020/data/out/ustacks_logs_alfredi
-mobulid_2020/data/out/ustacks_logs_birostris
-
 
 

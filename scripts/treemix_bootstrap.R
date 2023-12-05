@@ -349,7 +349,7 @@ treemix.bootstrap = function(
   tmp <- tmp %>%
     mutate(V2 = case_when(V2 == "Hawaii" ~ "HAW",
                           V2 == "Australia_Pacific" ~ "AP",
-                          V2 == "Fiji" ~ "FIJ",
+                          V2 == "Fiji" ~ "FIJI",
                           V2 == "Maldives" ~ "MAL",
                           V2 == "Seychelles" ~ "SEY",
                           V2 == "Chagos" ~ "CHAG",

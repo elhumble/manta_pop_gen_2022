@@ -4,7 +4,8 @@
 .Ruserdata
 0_prep_metadata.R
 0.1_sample_supp.R
-9_MAF.R
+999_MAF.R
+extra_info.txt
 /angsd
 /data
 /doc

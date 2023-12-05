@@ -169,7 +169,13 @@ ibd_alf <- ggplot(df_dist_alf) +
   ylab(fstlab_alf) +
   scale_x_continuous(labels = comma) +
   ggtitle("B") +
-  theme_emily()
+  theme_emily() +
+  geom_richtext(x = 4000, 
+                y = 0.44, 
+                label.color = NA,
+                label = "Adj *R<sup>2</sup>* = 0.65",
+                size = 3,
+                color = "#333333")
 
 ibd_alf
 
@@ -339,7 +345,14 @@ ibd_bir <- ggplot(df_dist_bir) +
   #ggtitle(expression(italic("F"))) +
   scale_x_continuous(labels = comma) +
   ggtitle("D") +
-  theme_emily()
+  theme_emily() +
+  geom_richtext(x = 8000, 
+                y = 0.0070, 
+                label.color = NA,
+                label = "Adj *R<sup>2</sup>* = 0.50",
+                size = 3,
+                color = "#333333")
+
 
 ibd_bir
 

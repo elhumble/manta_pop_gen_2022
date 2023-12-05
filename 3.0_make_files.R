@@ -225,4 +225,73 @@ list_alf %>%
 #scp data/file_lists/*IDs* ehumble@eddie.ecdf.ed.ac.uk:/exports/cmvm/eddie/eb/groups/ogden_grp/emily/manta_pop_gen_2020/file_lists/
 
 
+#~~~~~~~~~~~~~~~~~~~~~~~#
+#        Genepop        #
+#~~~~~~~~~~~~~~~~~~~~~~~#
+
+meta <- fread("data/meta/sample_info_mastersheet_reformatted.csv") %>%
+  dplyr::select(c(Sample_code, Location))
+
+# ALFREDI
+
+alf_ped <- fread("data/plink/across_sp/alfredi_geno4_dp6_ind_geno_depth_no_dups_maf_unrelated_ld.ped") %>%
+  separate(V1, c("Sample", "dup")) %>%
+  left_join(meta, by = c("Sample" = "Sample_code")) %>%
+  unite("V1", Sample:dup) %>%
+  mutate(V1 = gsub("_NA", "", V1)) %>%
+  mutate(Location = gsub(" ", "_", Location))
+
+alf_ped$V1 <- alf_ped$Location
+
+alf_ped <- alf_ped %>%
+  dplyr::select(-c(Location))
+
+write.table(alf_ped, "data/plink/across_sp/alfredi_for_genepop.ped",
+            quote = F, row.names = F, col.names = F)
+
+# Convert to genepop using PGDspider
+
+# BIROSTRIS
+
+bir_ped <- fread("data/plink/across_sp/birostris_geno4_dp6_ind_geno_depth_no_dups_maf_unrelated_ld.ped") %>%
+  separate(V1, c("Sample", "dup")) %>%
+  left_join(meta, by = c("Sample" = "Sample_code")) %>%
+  unite("V1", Sample:dup) %>%
+  mutate(V1 = gsub("_NA", "", V1)) %>%
+  mutate(Location = gsub(" ", "_", Location))
+
+bir_ped$V1 <- bir_ped$Location
+
+bir_ped <- bir_ped %>%
+  dplyr::select(-c(Location))
+
+write.table(bir_ped, "data/plink/across_sp/birostris_for_genepop.ped",
+            quote = F, row.names = F, col.names = F)
+
+# Convert to genepop using PGDspider
+
+# SPECIES
+
+#scp ehumble@eddie.ecdf.ed.ac.uk:/exports/cmvm/eddie/eb/groups/ogden_grp/emily/manta_pop_gen_2020/data/out/stacks_PE/across_sp_geno4_dp6_ind_geno_depth_no_dups_mac_geno.ped data/plink/across_sp/
+#scp ehumble@eddie.ecdf.ed.ac.uk:/exports/cmvm/eddie/eb/groups/ogden_grp/emily/manta_pop_gen_2020/data/out/stacks_PE/across_sp_geno4_dp6_ind_geno_depth_no_dups_mac_geno.map data/plink/across_sp/
+
+meta <- fread("data/meta/sample_info_mastersheet_reformatted.csv") %>%
+  dplyr::select(c(Sample_code, Species))
+
+sp_ped <- fread("data/plink/across_sp/across_sp_geno4_dp6_ind_geno_depth_no_dups_mac_geno.ped") %>%
+  separate(V1, c("Sample", "dup")) %>%
+  left_join(meta, by = c("Sample" = "Sample_code")) %>%
+  unite("V1", Sample:dup) %>%
+  mutate(V1 = gsub("_NA", "", V1)) %>%
+  mutate(Species = gsub(" ", "_", Species))
+
+sp_ped$V1 <- sp_ped$Species
+
+sp_ped <- sp_ped %>%
+  dplyr::select(-c(Species))
+
+write.table(sp_ped, "data/plink/across_sp/across_sp_for_genepop.ped",
+            quote = F, row.names = F, col.names = F)
+
+
 #~~ Birostris

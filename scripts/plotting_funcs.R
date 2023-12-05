@@ -527,7 +527,7 @@ plot_resid_internal = function(d, o = NA, max = 0.009, min = -0.009, cex =0.5, w
 		
 		if (sp == "alfredi")
 		{
-		  abbrev <- c("AP", "FIJ", "HAW", "MAL", "SEY", "CHAG", "BIR")  
+		  abbrev <- c("AP", "FIJI", "HAW", "MAL", "SEY", "CHAG", "BIR")  
 		  #mtext(names(d)[i], side = 2, at = 1-i/npop+0.5/npop, las = 1, cex = cex, col = tcol)
 		  #mtext(names(d)[i], side = 1, at =  i/npop-0.5/npop, las = 1, cex = cex, col = tcol)
 		  mtext(abbrev[i], side = 2, at = 1-i/npop+0.5/npop, las = 1, cex = cex, col = tcol)

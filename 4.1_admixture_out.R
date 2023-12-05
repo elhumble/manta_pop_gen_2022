@@ -50,7 +50,8 @@ data <- unnest(data, cols = c(file_contents)) %>%
                               Location == "Peru" ~ "PERU",
                               Location == "Mexico Caribbean" ~ "MC",
                               Location == "Mexico Pacific" ~ "MP",
-                              Location == "South Africa" ~ "SA"))
+                              Location == "South Africa" ~ "SA")) %>%
+  mutate(Location = factor(Location, levels = c("PERU", "MP", "MC", "SA", "SL", "PHI")))
 
 K1 <- filter(data, grepl("1.Q$", filename)) %>%
   mutate(ID = as.factor(ID),
@@ -96,10 +97,9 @@ col_palette <- c("#7E8AA2",
                  "#E2D200",
                  "#3B9AB2")
 
-
 k1_plot <- ggplot(K1, aes(factor(ID), value, fill = factor(name))) +
   geom_col(color = "gray", size = 0.1) +
-  facet_grid(~fct_inorder(Location), switch = "x", scales = "free", space = "free") +
+  facet_grid(~Location, switch = "x", scales = "free", space = "free") +
   theme_minimal() + labs(x = "Individuals", title = "K=1", y = "Ancestry") +
   scale_fill_manual(values = col_palette) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -114,7 +114,7 @@ k1_plot <- ggplot(K1, aes(factor(ID), value, fill = factor(name))) +
 
 k2_plot <- ggplot(K2, aes(factor(ID), value, fill = factor(name))) +
   geom_col(color = "gray", size = 0.1) +
-  facet_grid(~fct_inorder(Location), switch = "x", scales = "free", space = "free") +
+  facet_grid(~Location, switch = "x", scales = "free", space = "free") +
   theme_minimal() + labs(x = "Individuals", title = "K=2", y = "Ancestry") +
   scale_fill_manual(values = col_palette) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -130,7 +130,7 @@ k2_plot <- ggplot(K2, aes(factor(ID), value, fill = factor(name))) +
 
 k3_plot <- ggplot(K3, aes(factor(ID), value, fill = factor(name))) +
   geom_col(color = "gray", size = 0.1) +
-  facet_grid(~fct_inorder(Location), switch = "x", scales = "free", space = "free") +
+  facet_grid(~Location, switch = "x", scales = "free", space = "free") +
   theme_minimal() + labs(x = "Individuals", title = "K=3", y = "Ancestry") +
   scale_fill_manual(values = col_palette) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -145,7 +145,7 @@ k3_plot <- ggplot(K3, aes(factor(ID), value, fill = factor(name))) +
 
 k4_plot <- ggplot(K4, aes(factor(ID), value, fill = factor(name))) +
   geom_col(color = "gray", size = 0.1) +
-  facet_grid(~fct_inorder(Location), switch = "x", scales = "free", space = "free") +
+  facet_grid(~Location, switch = "x", scales = "free", space = "free") +
   theme_minimal() + labs(x = "Individuals", title = "K=4", y = "Ancestry") +
   scale_fill_manual(values = col_palette) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -160,7 +160,7 @@ k4_plot <- ggplot(K4, aes(factor(ID), value, fill = factor(name))) +
 
 k5_plot <- ggplot(K5, aes(factor(ID), value, fill = factor(name))) +
   geom_col(color = "gray", size = 0.1) +
-  facet_grid(~fct_inorder(Location), switch = "x", scales = "free", space = "free") +
+  facet_grid(~Location, switch = "x", scales = "free", space = "free") +
   theme_minimal() + labs(x = "Individuals", title = "K=5", y = "Ancestry") +
   scale_fill_manual(values = col_palette) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -175,7 +175,7 @@ k5_plot <- ggplot(K5, aes(factor(ID), value, fill = factor(name))) +
 
 k6_plot <- ggplot(K6, aes(factor(ID), value, fill = factor(name))) +
   geom_col(color = "gray", size = 0.1) +
-  facet_grid(~fct_inorder(Location), switch = "x", scales = "free", space = "free") +
+  facet_grid(~Location, switch = "x", scales = "free", space = "free") +
   theme_minimal() + labs(x = "Individuals", title = "K=6", y = "Ancestry") +
   scale_fill_manual(values = col_palette) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -206,7 +206,7 @@ k7_plot <- ggplot(K7, aes(factor(ID), value, fill = factor(name))) +
 
 k8_plot <- ggplot(K8, aes(factor(ID), value, fill = factor(name))) +
   geom_col(color = "gray", size = 0.1) +
-  facet_grid(~fct_inorder(Location), switch = "x", scales = "free", space = "free") +
+  facet_grid(~Location, switch = "x", scales = "free", space = "free") +
   theme_minimal() + labs(x = "Individuals", title = "K=8", y = "Ancestry") +
   scale_fill_manual(values = col_palette) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -272,8 +272,8 @@ data <- unnest(data, cols = c(file_contents)) %>%
                               Location == "Chagos" ~ "CHA",
                               Location == "Australia Pacific" ~ "AP",
                               Location == "Hawaii" ~ "HAW",
-                              Location == "Fiji" ~ "FIJI"))
-
+                              Location == "Fiji" ~ "FIJI")) %>%
+  mutate(Location = factor(Location, levels = c("MAL", "SEY", "CHA", "AP", "FIJI", "HAW")))
 
 K1 <- filter(data, grepl("1.Q$", filename)) %>%
   mutate(ID = as.factor(ID),
@@ -321,7 +321,7 @@ col_palette <- c("#9986A5",
 
 k1_plot <- ggplot(K1, aes(factor(ID), value, fill = factor(name))) +
   geom_col(color = "gray", size = 0.1) +
-  facet_grid(~fct_inorder(Location), switch = "x", scales = "free", space = "free") +
+  facet_grid(~Location, switch = "x", scales = "free", space = "free") +
   theme_minimal() + labs(x = "Individuals", title = "K=1", y = "Ancestry") +
   scale_fill_manual(values = col_palette) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -336,7 +336,7 @@ k1_plot <- ggplot(K1, aes(factor(ID), value, fill = factor(name))) +
 
 k2_plot <- ggplot(K2, aes(factor(ID), value, fill = factor(name))) +
   geom_col(color = "gray", size = 0.1) +
-  facet_grid(~fct_inorder(Location), switch = "x", scales = "free", space = "free") +
+  facet_grid(~Location, switch = "x", scales = "free", space = "free") +
   theme_minimal() + labs(x = "Individuals", title = "K=2", y = "Ancestry") +
   scale_fill_manual(values = col_palette) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -351,7 +351,7 @@ k2_plot <- ggplot(K2, aes(factor(ID), value, fill = factor(name))) +
 
 k3_plot <- ggplot(K3, aes(factor(ID), value, fill = factor(name))) +
   geom_col(color = "gray", size = 0.1) +
-  facet_grid(~fct_inorder(Location), switch = "x", scales = "free", space = "free") +
+  facet_grid(~Location, switch = "x", scales = "free", space = "free") +
   theme_minimal() + labs(x = "Individuals", title = "K=3", y = "Ancestry") +
   scale_fill_manual(values = col_palette) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -366,7 +366,7 @@ k3_plot <- ggplot(K3, aes(factor(ID), value, fill = factor(name))) +
 
 k4_plot <- ggplot(K4, aes(factor(ID), value, fill = factor(name))) +
   geom_col(color = "gray", size = 0.1) +
-  facet_grid(~fct_inorder(Location), switch = "x", scales = "free", space = "free") +
+  facet_grid(~Location, switch = "x", scales = "free", space = "free") +
   theme_minimal() + labs(x = "Individuals", title = "K=4", y = "Ancestry") +
   scale_fill_manual(values = col_palette) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -381,7 +381,7 @@ k4_plot <- ggplot(K4, aes(factor(ID), value, fill = factor(name))) +
 
 k5_plot <- ggplot(K5, aes(factor(ID), value, fill = factor(name))) +
   geom_col(color = "gray", size = 0.1) +
-  facet_grid(~fct_inorder(Location), switch = "x", scales = "free", space = "free") +
+  facet_grid(~Location, switch = "x", scales = "free", space = "free") +
   theme_minimal() + labs(x = "Individuals", title = "K=5", y = "Ancestry") +
   scale_fill_manual(values = col_palette) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -396,7 +396,7 @@ k5_plot <- ggplot(K5, aes(factor(ID), value, fill = factor(name))) +
 
 k6_plot <- ggplot(K6, aes(factor(ID), value, fill = factor(name))) +
   geom_col(color = "gray", size = 0.1) +
-  facet_grid(~fct_inorder(Location), switch = "x", scales = "free", space = "free") +
+  facet_grid(~Location, switch = "x", scales = "free", space = "free") +
   theme_minimal() + labs(x = "Individuals", title = "K=6", y = "Ancestry") +
   scale_fill_manual(values = col_palette) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -412,7 +412,7 @@ k6_plot <- ggplot(K6, aes(factor(ID), value, fill = factor(name))) +
 
 k7_plot <- ggplot(K7, aes(factor(ID), value, fill = factor(name))) +
   geom_col(color = "gray", size = 0.1) +
-  facet_grid(~fct_inorder(Location), switch = "x", scales = "free", space = "free") +
+  facet_grid(~Location, switch = "x", scales = "free", space = "free") +
   theme_minimal() + labs(x = "Individuals", title = "K=7", y = "Ancestry") +
   scale_fill_manual(values = col_palette) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -427,7 +427,7 @@ k7_plot <- ggplot(K7, aes(factor(ID), value, fill = factor(name))) +
 
 k8_plot <- ggplot(K8, aes(factor(ID), value, fill = factor(name))) +
   geom_col(color = "gray", size = 0.1) +
-  facet_grid(~fct_inorder(Location), switch = "x", scales = "free", space = "free") +
+  facet_grid(~Location, switch = "x", scales = "free", space = "free") +
   theme_minimal() + labs(x = "Individuals", title = "K=8", y = "Ancestry") +
   scale_fill_manual(values = col_palette) +
   scale_y_continuous(expand = c(0, 0)) +

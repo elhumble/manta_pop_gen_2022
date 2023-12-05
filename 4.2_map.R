@@ -98,7 +98,7 @@ pal <- c("#EAD3BF",
 m_bir <- ggplot() + 
   geom_spatvector(data = world.map, colour = "grey99", fill = "grey80", size = 0.1) +
   geom_spatvector(data = bir_pos_extant, col = "grey99", fill = "#655A6C", alpha = 0.1) +
-  geom_spatvector(data = bir_extant, col = NA, fill = "#655A6C", alpha = 0.4) +
+  geom_spatvector(data = bir_extant, col = NA, fill = "#655A6C", alpha = 0.5) +
   geom_point(aes(x = lon_samples, y = lat_samples, color = country, size = n), 
              data = birostris_samples, alpha = 0.9) + # 3, 2
   scale_colour_manual(values = pal) + 
@@ -125,12 +125,47 @@ m_bir <- ggplot() +
   scale_size(range = c(3,9)) + 
   #ggtitle("C")
   ggtitle(label = "C",
-          subtitle = expression(paste("Oceanic manta ray ", italic("(Mobula birostris)"))))
+          subtitle = expression(paste("Oceanic manta ray (", italic("Mobula birostris"), ")")))
   #ggtitle(expression(paste("B - Oceanic manta ray, ", italic("(Mobula birostris)"))))
 
 ggsave("figs/map_birostris.png", m_bir, width = 11, height = 6)
+ggsave("figs/map_birostris_ppt.png", m_bir, width = 9, height = 4)
 
 saveRDS(m_bir, "figs/map_birostris.RDS")
+
+
+m_bir_ppt <- ggplot() + 
+  geom_spatvector(data = world.map, colour = "grey99", fill = "grey80", size = 0.1) +
+  geom_spatvector(data = bir_pos_extant, col = "grey99", fill = "#655A6C", alpha = 0.1) +
+  geom_spatvector(data = bir_extant, col = NA, fill = "#655A6C", alpha = 0.5) +
+  scale_colour_manual(values = pal) + 
+  # theme_emily() +
+  guides(color = "none") +
+  theme(panel.border = element_blank(),
+        panel.grid = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = "white"),
+        #axis.line = element_line(colour = "white"),
+        axis.line = element_blank(),
+        legend.position = "bottom",
+        legend.title = element_blank(),
+        legend.key = element_rect(fill = "white"),
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        plot.title = element_text(hjust = 0.04),
+        plot.subtitle = element_text(hjust = 0.08)) +
+  scale_size(range = c(3,9))
+
+
+ggsave("figs/map_birostris_dist.png", m_bir_ppt, width = 9, height = 4)
+
+
+
 
 
 # ALFREDI
@@ -145,7 +180,7 @@ pal <- c("#9986A5",
 m_alf <- ggplot() + 
   geom_spatvector(data = world.map, colour = "grey99", fill = "grey80", size = 0.1) +
   geom_spatvector(data = alf_pos_extant, col = "grey99", fill = "#1D8981", alpha = 0.1) +
-  geom_spatvector(data = alf_extant, col = NA, fill = "#1D8981", alpha = 0.3) +
+  geom_spatvector(data = alf_extant, col = NA, fill = "#1D8981", alpha = 0.4) +
   geom_point(aes(x = lon_samples, y = lat_samples, color = country, size = n), 
              data = alfredi_samples, alpha = 0.9) + # 3, 2
   scale_colour_manual(values = pal) + 
@@ -172,9 +207,38 @@ m_alf <- ggplot() +
   scale_size(range = c(3,9)) + 
   #ggtitle("A")
   ggtitle(label = "A",
-          subtitle = expression(paste("Reef manta ray ", italic("(Mobula alfredi)"))))
+          subtitle = expression(paste("Reef manta ray (", italic("Mobula alfredi"), ")")))
 
 ggsave("figs/map_alfredi.png", m_alf, width = 11, height = 6)
+ggsave("figs/map_alfredi_ppt.png", m_alf, width = 9, height = 4)
 
 saveRDS(m_alf, "figs/map_alfredi.RDS")
 
+m_alf_dist <- ggplot() + 
+  geom_spatvector(data = world.map, colour = "grey99", fill = "grey80", size = 0.1) +
+  geom_spatvector(data = alf_pos_extant, col = "grey99", fill = "#1D8981", alpha = 0.1) +
+  geom_spatvector(data = alf_extant, col = NA, fill = "#1D8981", alpha = 0.4) +
+  scale_colour_manual(values = pal) + 
+  # theme_emily() +
+  guides(color = "none") +
+  theme(panel.border = element_blank(),
+        panel.grid = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = "white"),
+        #axis.line = element_line(colour = "white"),
+        axis.line = element_blank(),
+        legend.position = "none",
+        legend.title = element_blank(),
+        legend.key = element_rect(fill = "white"),
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        plot.title = element_text(hjust = 0.05),
+        plot.subtitle = element_text(hjust = 0.08)) +
+  scale_size(range = c(3,9))
+
+ggsave("figs/map_alfredi_dist.png", m_alf_dist, width = 9, height = 4)

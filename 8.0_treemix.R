@@ -188,9 +188,9 @@ dev.off()
 # scp ehumble@eddie.ecdf.ed.ac.uk:/exports/cmvm/eddie/eb/groups/ogden_grp/emily/manta_pop_gen_2020/data/out/stacks_PE/treemix/final_runs/alfredi_m*_outtree.newick data/treemix/alfredi/final_runs/
 
 title_alf <- "A"
-sub_alf <- expression(paste("Reef manta ray ", italic("(Mobula alfredi)")))
+sub_alf <- expression(paste("Reef manta ray (", italic("Mobula alfredi"), ")"))
   
-png("figs/treemix_alfredi_m2.png", units = "in", res = 300, width = 6, height = 5)
+pdf("figs/treemix_alfredi_m2.pdf", width = 6, height = 5)
 
 treemix.bootstrap(in.file = "data/treemix/alfredi/final_runs/alfredi_m2_treemix", 
                   out.file = "data/treemix/alfredi/final_runs/alfredi_m2",
@@ -210,13 +210,13 @@ plot_resid("data/treemix/alfredi/final_runs/alfredi_m1_treemix", "data/meta/tree
 #scp ehumble@eddie.ecdf.ed.ac.uk:/exports/cmvm/eddie/eb/groups/ogden_grp/emily/manta_pop_gen_2020/data/out/stacks_PE/treemix/final_runs/birostris_m* data/treemix/birostris/final_runs/
 #scp ehumble@eddie.ecdf.ed.ac.uk:/exports/cmvm/eddie/eb/groups/ogden_grp/emily/manta_pop_gen_2020/data/out/stacks_PE/treemix/final_runs/birostris_m*_outtree.newick data/treemix/birostris/final_runs/
 
-scp ehumble@eddie.ecdf.ed.ac.uk:/exports/cmvm/eddie/eb/groups/ogden_grp/emily/manta_pop_gen_2020/data/out/stacks_PE/treemix/final_runs/birostris_m0* data/treemix/birostris/final_runs/
-scp ehumble@eddie.ecdf.ed.ac.uk:/exports/cmvm/eddie/eb/groups/ogden_grp/emily/manta_pop_gen_2020/data/out/stacks_PE/treemix/final_runs/birostris_m0*_outtree.newick data/treemix/birostris/final_runs/
+#scp ehumble@eddie.ecdf.ed.ac.uk:/exports/cmvm/eddie/eb/groups/ogden_grp/emily/manta_pop_gen_2020/data/out/stacks_PE/treemix/final_runs/birostris_m0* data/treemix/birostris/final_runs/
+#scp ehumble@eddie.ecdf.ed.ac.uk:/exports/cmvm/eddie/eb/groups/ogden_grp/emily/manta_pop_gen_2020/data/out/stacks_PE/treemix/final_runs/birostris_m0*_outtree.newick data/treemix/birostris/final_runs/
   
 title_bir <- "B"
-sub_bir <- expression(paste("Oceanic manta ray ", italic("(Mobula birostris)")))
+sub_bir <- expression(paste("Oceanic manta ray (", italic("Mobula birostris"), ")"))
 
-png("figs/treemix_birostris_m0.png", units = "in", res = 300, width = 6, height = 4.5)
+pdf("figs/treemix_birostris_m0.pdf", width = 6, height = 4.5)
 
 treemix.bootstrap(in.file = "data/treemix/birostris/final_runs/birostris_m0_treemix", 
                   out.file = "data/treemix/birostris/final_runs/birostris_m0",

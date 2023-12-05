@@ -1,11 +1,11 @@
-# Manta SNP filtering workflow 2021
+# Manta SNP filtering workflow 2023
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 #   ACROSS SPECIES FILTERING   #
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-# output of STACKS pipeline on both birostris and alfredi individuals together
-# Downstream required for analysis considering both species
+#~~ output of STACKS pipeline on both birostris and alfredi individuals processed together
+# Required for analysis considering both species
 
 # PE
 # 733592 loci, 
@@ -61,6 +61,10 @@ vcftools --vcf across_sp_geno4_dp6_ind.recode.vcf --max-missing 0.60 \
 --min-meanDP 25 --max-meanDP 376 --recode --recode-INFO-all --out across_sp_geno4_dp6_ind_geno_depth
 
 # After filtering, kept 81166 out of a possible 95370 Sites
+
+# Depth statistics (2.0_snp_sumstats.R)
+
+vcftools --vcf across_sp_geno4_dp6_ind_geno_depth.vcf --site-mean-depth --out across_sp_geno4_dp6_ind_geno_depth
 
 #~~ Convert to PLINK
 
@@ -121,6 +125,7 @@ plink --bfile across_sp_geno4_dp6_ind_geno_depth_no_dups \
 --allow-extra-chr --debug
 
 # 23484 variants and 87 people pass filters and QC.
+
 
 #~~~~~~~~~~~~~#
 #   LINKAGE   #
@@ -201,9 +206,13 @@ plink --bfile birostris_geno4_dp6_ind_geno_depth_no_dups_maf \
 
 # 6278 variants and 82 people pass filters and QC.
 
-# Make structure files / BA3 / Treemix files
+# Make genepop files / structure files / BA3 / Treemix files
 
-# Go to local machine 4.0_make_files.R to create files and reupload to eddie
+# Go to local machine 3.0_make_files.R to create files and reupload to eddie
+
+# Population genetic summary statistics with R package diveRsity
+
+# Go to 2.0_snp_sumstats.R
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -288,100 +297,14 @@ grep "CV" alfredi*out | awk '{print $3,$4}' | sed -e 's/(//;s/)//;s/://;s/K=//' 
 # visualisation and analysis on local machine 5.1_admixture_out.R
 
 
-
-#~~ STRUCTURE
-
-# recode plink files to ped map
-
-plink --bfile alfredi_geno4_dp6_ind_geno_depth_no_dups_maf_unrelated_ld --recode \
---allow-extra-chr --debug --out alfredi_geno4_dp6_ind_geno_depth_no_dups_maf_unrelated_ld
-
-plink --bfile birostris_geno4_dp6_ind_geno_depth_no_dups_maf_unrelated_ld --recode \
---allow-extra-chr --debug --out birostris_geno4_dp6_ind_geno_depth_no_dups_maf_unrelated_ld
-
-#~~ STRUCTURE
-
-# Take care that number of loci is correct in the parallel structure command otherwise breaks
-
-# ID
-# pop column
-# pop data column
-# locdata column (same as pops)
-# genotypes
-
-# Create run files for parallel structure
-
-4.0_structure_runfiles.sh
-
-# Run parallel structure for each species, making sure to edit scripts/run_structure.R
-
-# No locprior:
-
-# infile arg job script (birostris OR alfredi)/ 
-# locprior=0 and outpath nolocprior run_structure.R script
-
-# With locprior info: 
-
-# infile arg job script (birostris OR alfredi)/ 
-# locprior=1 and outpath locprior run_structure.R script
-
-4.1_run_structure.R
-
-nolocprior
-
-birostris: TO DO
-
-alfredi: TO DO
-
-locprior
-
-birostris: 2-10 hrs / >5 Gb
-
-alfredi: running
-
-
-# visualisation and analysis on local machine 5.0_structure_out.R
-
-# Get clumpp out on local using 5.0_structure_out.R
-
-# run clump to summarise repeats (from Kara)
-# on qlogin for each species and structure run
-
-for i in {2..8};
-do
-cp /exports/cmvm/eddie/eb/groups/ogden_grp/emily/software/CLUMPP_Linux64.1.1.2/CLUMPP \
-/exports/cmvm/eddie/eb/groups/ogden_grp/emily/manta_pop_gen_2020/data/out/stacks_PE/structure/birostris/locprior/pop_K${i}/.
-done
-
-cd birostris/locprior
-
-for i in {2..8};
-do
-cd pop_K${i}
-./CLUMPP
-cp pop_K${i}-combined-merged.txt ../.
-rm CLUMPP
-cd ..
-done
-
-# Go back to local 5.0_structure_out.R
-
-etc...
-
-
-
 #~~~~~~~~~#
 #   Fst   #
 #~~~~~~~~~#
 
 On local: 
 
-5.0_IBD.R
-5.1_over_sea_distance.R
-5.2_FST_WC.R
-5.3_FST_hudson.R
-
-# Calculating FST between populations / isolation by distance / Hs by distance
+5.0_IBD_dbMEM_RDA.R
+5.1_FST_WC.R
 
 
 #~~~~~~~~~~~~~~~~~~~~#
@@ -404,6 +327,13 @@ plink --bfile across_sp_geno4_dp6_ind_geno_depth_no_dups \
 
 # Generate figures on local het.R
 
+#~~ Create ped files for population genetic stats calculations
+
+plink --bfile across_sp_geno4_dp6_ind_geno_depth_no_dups \
+--mac 3 --geno 0.1 \
+--remove ../../../file_lists/all_related \
+--out across_sp_geno4_dp6_ind_geno_depth_no_dups_mac_geno \
+--allow-extra-chr --debug --recode
 
 #~~ Create vcf for nucleotide diversity calculations
 
@@ -614,14 +544,7 @@ mv birostris_autotune autotune/
 -t -g -u -s 10000 -o birostris_bayesass3_10000
 
 
-
 # Analyse output on local: 7.0_ba3.R
-
-
-
-
-# Try running with different population first in the input
-# Try running with even number of individuals per population
 
 
 #~~~~~~~~~~~~~#
@@ -739,7 +662,6 @@ perl ../../../../scripts/treemix_fraction.pl initial_runs/birostris_${i}_m${m} >
 # https://github.com/carolindahms/TreeMix
 # https://github.com/marcomilanesi/BITE
 
-#~~ Re-run treemix with optimal number of migration edges 100 times
 
 #~~ Alfredi
 
@@ -847,13 +769,6 @@ treemix \
 -o birostris_m0_treemix > birostris_m0_logfile_treemix_boot.log
 
 # Plot trees using R 8.0_treemix.R
-
-birostirs
-# M=0 is complete. do not touch files!
-# need to redo for 1-4 to explore trees
-# could also play around with alfredi n migrations opt m versus likelihood
-# could also rerun with more birostris samples!
-
 
 
 
