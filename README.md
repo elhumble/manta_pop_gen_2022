@@ -1,6 +1,6 @@
 **Analysis code for:**
 -------------
-Humble E, Hosegood J, Carvalho G, de Bruyn M, Creer S, Stevens GMW, Armstrong A, Bonfil R, Deakos M, Fernando D, Froman N, Peel LR, Pollett S, Ponzo A, Stewart JD, Wintner S, Ogden R **Comparative population genomics of manta rays has global implications for management.** *Molecular Ecology* https://doi.org/10.1111/mec.17220  
+Humble E, Hosegood J, Carvalho G, de Bruyn M, Creer S, Stevens GMW, Armstrong A, Bonfil R, Deakos M, Fernando D, Froman N, Peel LR, Pollett S, Ponzo A, Stewart JD, Wintner S, Ogden R **Comparative population genomics of manta rays has global implications for management.** *Molecular Ecology.* https://doi.org/10.1111/mec.17220  
 
 **Summary**
 -------------
